@@ -37,7 +37,7 @@ function request(string $url, array $headers, string $cookieFile): string
         CURLOPT_HTTPHEADER => $headers,
         CURLOPT_COOKIEJAR => $cookieFile,
         CURLOPT_COOKIEFILE => $cookieFile,
-        CURLOPT_USERAGENT => 'Mozilla/5.0 (compatible; PassmarkMegaPage/1.0)',
+        CURLOPT_USERAGENT => 'Mozilla/5.0 (compatible; PassMarkMegaPage/1.0)',
     ]);
 
     $body = curl_exec($curl);
