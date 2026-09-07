@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="description" content="Sortable, filterable and comparable PassMark videocard benchmark data">
 <title>PassMark Videocard Benchmark Mega Page</title>
-<script>(function(){var t=document.cookie.match(/(?:^|; )theme=([^;]*)/),f=document.cookie.match(/(?:^|; )fontSize=([^;]*)/);if(t&&decodeURIComponent(t[1])==="dark")document.documentElement.dataset.theme="dark";f=f?decodeURIComponent(f[1]):"3";document.documentElement.dataset.fontSize=/^[1-4]$/.test(f)?f:"3"})();</script>
+<script>(function(){var q='gpulist_',read=function(k){var m=document.cookie.match(new RegExp('(?:^|; )'+q+k+'=([^;]*)'));return m?decodeURIComponent(m[1]):null},t=read('theme'),f=read('fontSize');if(t==='dark')document.documentElement.dataset.theme='dark';f=f||'3';document.documentElement.dataset.fontSize=/^[1-4]$/.test(f)?f:'3'})();</script>
 <style>
 :root{color-scheme:light;--bg:#f3f6fa;--panel:#fff;--panel2:#edf2f7;--text:#172337;--muted:#68778a;--line:#d5dee9;--strong:#b7c4d4;--accent:#1769d2;--sort-active:#2f86ed;--sort-idle:#a7b2c0;--soft:#e7f0ff;--head:#eaf0f7;--hover:#eaf4ff;--main-hover:#eef6ff;--pin-hover:#f5faff;--main-reference:#eaf4ff;--compare-hover:#eaf4ff;--current:#eaf3ff;--current-hover:#f5faff;--reference:#eef6ff;--row-even:#fafafa;--current-even:#e4edf9;--pin-row:#dcecff;--pin-even:#d6e6f9;--pin-reference:#c9def8;--reference-current:#d2e6fc;--green:#198754;--yellow:#ffd43b;--yellow-text:#171717;--pin-off:#949eaa;--pin-on:#111820;--danger:#b42318;--shadow:0 9px 28px #18314e18}
 :root[data-theme=dark]{color-scheme:dark;--bg:#0e1622;--panel:#151f2d;--panel2:#1b2838;--text:#e7edf6;--muted:#9daabd;--line:#2c3b4d;--strong:#42556b;--accent:#6dacff;--sort-active:#83bdff;--sort-idle:#637286;--soft:#17365c;--head:#1b293a;--hover:#2a435e;--main-hover:#203750;--pin-hover:#3a5c7c;--main-reference:#2a435e;--compare-hover:#2a435e;--current:#182f49;--current-hover:#263e58;--reference:#203750;--row-even:#0f1927;--current-even:#122943;--pin-row:#294866;--pin-even:#234260;--pin-reference:#335879;--reference-current:#294866;--green:#35a86e;--yellow:#8a6224;--yellow-text:#fff4df;--pin-off:#737f8e;--pin-on:#f1f4f8;--danger:#ff8d86;--shadow:0 10px 32px #0005}
@@ -49,10 +49,12 @@ tbody tr{height:var(--row-height,42px)}td{height:var(--row-height,42px);padding:
 (function(){
 "use strict";
 var ROW=42,OVER=14,LOOKUP="https://www.videocardbenchmark.net/video_lookup.php?gpu=",all=[],rowById=new Map(),view=[],filters={},enumSelected={},enumOptions={},frame=0,dataLoaded=false,dragColumn="",dragTable="",dragRow=null;
-function getCookie(k){var m=document.cookie.match(new RegExp("(?:^|; )"+k.replace(/[.*+?^$()|[\]\\]/g,"\\$&")+"=([^;]*)"));return m?decodeURIComponent(m[1]):null}
-function setCookie(k,v){document.cookie=k+"="+encodeURIComponent(v)+"; Max-Age=31536000; Path=/; SameSite=Lax"}
+var storagePath=location.pathname.replace(/[^/]*$/,'')||'/',storagePrefix='gpulist_';
+function storageKey(k){return storagePrefix+k}
+function getCookie(k){k=storageKey(k);var m=document.cookie.match(new RegExp("(?:^|; )"+k.replace(/[.*+?^$()|[\]\\]/g,"\\$&")+"=([^;]*)"));return m?decodeURIComponent(m[1]):null}
+function setCookie(k,v){document.cookie=storageKey(k)+"="+encodeURIComponent(v)+"; Max-Age=31536000; Path="+storagePath+"; SameSite=Lax"}
 function cookieJson(k,d){try{var v=getCookie(k);return v==null?d:JSON.parse(v)}catch(e){return d}}
-function localJson(k,d){try{var v=localStorage.getItem(k);return v==null?d:JSON.parse(v)}catch(e){return d}}
+function localJson(k,d){try{var v=localStorage.getItem(storageKey(k));return v==null?d:JSON.parse(v)}catch(e){return d}}
 function saveCookieJson(k,v){setCookie(k,JSON.stringify(v))}
 function n(v){if(v==null||v===""||String(v).toUpperCase()==="NA")return null;var x=parseFloat(String(v).replace(/[$,%\s]/g,"").replace(/,/g,""));return Number.isFinite(x)?x:null}
 function dv(v){var x=Date.parse(String(v||"")+" 1");return Number.isFinite(x)?x:null}
@@ -108,7 +110,7 @@ var storedSplit=getCookie("gpuSplitPctV2"),splitPct=storedSplit==null?(compariso
 var table=document.getElementById("table"),shell=document.getElementById("shell"),summary=document.getElementById("summary"),colsBox=document.getElementById("columns"),popRoot=document.getElementById("popRoot"),compareList=document.getElementById("compareList"),splitArea=document.getElementById("splitArea"),upper=document.getElementById("upper"),lower=document.getElementById("lower"),splitter=document.getElementById("splitter"),storageNotice=document.getElementById("storageNotice");
 function ordered(){return columnOrder.map(function(k){return by[k]}).filter(function(c){return visible.has(c.key)})}
 function saveColumns(){saveCookieJson("gpuColumns",Array.from(visible));saveCookieJson("gpuColumnOrder",columnOrder)}
-function saveComparisons(){localStorage.setItem("gpuComparisonsV1",JSON.stringify(comparisons))}
+function saveComparisons(){localStorage.setItem(storageKey("gpuComparisonsV1"),JSON.stringify(comparisons))}
 function savePins(){saveCookieJson("gpuPinned",Array.from(pinned))}
 function splitBounds(){var h=Math.max(1,splitArea.clientHeight-splitter.offsetHeight),min=220/h*100,max=(h-60)/h*100;if(min>max)return{min:200/3,max:200/3};return{min:min,max:max}}
 function scheduleRows(){if(frame)return;frame=requestAnimationFrame(function(){frame=0;renderRows()})}
